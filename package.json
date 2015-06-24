@@ -1,6 +1,6 @@
 {
   "name": "@zj/s-flow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Single application state manager in response to composable signals",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,7 @@
     "baobab": "^1.1.1",
     "typology": "^1.0.0"
   },
-  "publishConfig":{
+  "publishConfig": {
     "scope": "@zj",
     "registry": "http://npm.qtang.net"
   }
