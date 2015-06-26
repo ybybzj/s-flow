@@ -1,6 +1,6 @@
 {
   "name": "@zj/s-flow",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Single application state manager in response to composable signals",
   "main": "index.js",
   "scripts": {
