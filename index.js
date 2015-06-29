@@ -1,4 +1,5 @@
 var check = require('@zj/check/type');
+var t = require('typology');
 var slice = require('@zj/fnkit/slice');
 var pipe = require('@zj/fnkit/pipe');
 var Signal = require('./lib/signal');
@@ -26,7 +27,8 @@ var protos = {
   _createState: function(initData, options){
     var stateOpts = this._stateOptions;
     return createState(
-      arguments.length > 0 ? initData: stateOpts.data,
+      t.get(initData) === 'object' || t.get(initData) === 'array'? 
+            initData: stateOpts.data,
       stateOpts.facets,
       stateOpts.refs,
       _merge(stateOpts.options, options||{})
