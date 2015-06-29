@@ -16,19 +16,20 @@ var protos = {
         // snapshot = this._createState();
     snapshot.reset(this._stateOptions.data);
     return Promise.resolve(signal.execute(sigName, snapshot, sigVal)).then(function(){
+      snapshot.store.commit();
       return {
         state: snapshot,
         $type: '__$sf$__'
       };
     });
   },
-  _createState: function(initData){
+  _createState: function(initData, options){
     var stateOpts = this._stateOptions;
     return createState(
       arguments.length > 0 ? initData: stateOpts.data,
       stateOpts.facets,
       stateOpts.refs,
-      stateOpts.options
+      _merge(stateOpts.options, options||{})
       );
   },
   $type: '__$sf$__'
@@ -77,6 +78,14 @@ function _watch(sigName) {
     return piped.apply(self, args);
   };
   signal.on(sigName, sigHandler);
+}
+function _merge(t, o){
+  for(var k in o){
+    if(Object.prototype.hasOwnProperty.call(o, k)){
+      t[k] = o[k];
+    }
+  }
+  return t;
 }
 //test
 // if (require.main === module) {
