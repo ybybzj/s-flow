@@ -3,48 +3,79 @@ var slice = require('@zj/fnkit/slice');
 var pipe = require('@zj/fnkit/pipe');
 var Signal = require('./lib/signal');
 var createState = require('./lib/state');
+var Promise = require('@zj/promise');
 var protos = {
-  setup: function setup(signalRegister) {
-    check.t('function', signalRegister);
-    signalRegister(this);
+  init: function init() {
+    this.state = this._createState.apply(this, slice(arguments));
     return this;
   },
-  watch: function watch(signalWatcher) {
-    check.t('function', signalWatcher);
-    signalWatcher(_watch.bind(this));
-    return this;
-  }
+  snapshot: function snapshot(sigName,sigVal) {
+    var signal = this.signal,
+        snapshot = this._snapshot;
+    if(snapshot == null) snapshot = this._snapshot = this._createState();
+        // snapshot = this._createState();
+    snapshot.reset(this._stateOptions.data);
+    return Promise.resolve(signal.execute(sigName, snapshot, sigVal)).then(function(){
+      return {
+        state: snapshot,
+        $type: '__$sf$__'
+      };
+    });
+  },
+  _createState: function(initData){
+    var stateOpts = this._stateOptions;
+    return createState(
+      arguments.length > 0 ? initData: stateOpts.data,
+      stateOpts.facets,
+      stateOpts.refs,
+      stateOpts.options
+      );
+  },
+  $type: '__$sf$__'
 };
 
-function SF(state, opts) {
+function SF(opts) {
   check.t({
-    data: 'object',
-    facets: '?object',
-    refs: '?object'
-  }, state, '[sFlow constructor]Invalid state argument!');
-  var signalCreator = opts && opts.signalCreator, sf;
-  if (signalCreator) delete opts.signalCreator;
+    state:{
+      data: 'object',
+      facets: '?object',
+      refs: '?object',
+      options: '?object'
+    },
+    signal: 'function',
+    watch: 'function'
+  }, opts, '[sFlow constructor]Invalid state argument!');
+  var signalCreator = opts.state.options && opts.state.options.signalCreator, sf;
+  if (signalCreator) delete opts.state.options.signalCreator;
   sf = Object.create(protos);
-  sf.state = createState(state.data, state.facets, state.refs, opts);
-  sf.signal = signalCreator ? new Signal(signalCreator) : new Signal();
+  // sf.state = createState(state.data, state.facets, state.refs, opts);
+  sf.signal = new Signal(sf, signalCreator);
+  //register signals
+  opts.signal(sf.signal);
+  //watch signals
+  opts.watch(_watch.bind(sf));
+  sf._stateOptions = opts.state;
   return sf;
 }
 
 module.exports = SF;
 
 function _watch(sigName) {
-  var actions = slice(arguments, 1),
+  var reactions = slice(arguments, 1),
     signal = this.signal,
-    state = this.state,
+    self = this,
+    // state = this.state,
     sigHandler;
   check(typeof sigName === 'string', '[sFlow watch]first parameter should be a string! given: ' + sigName);
-  check.t(['function'], actions, '[sFlow watch]actions should be an array of functions! given: ' + actions);
-  sigHandler = pipe.apply(null, actions.map(function(orgFn) {
-    return function() {
-      var args = slice(arguments);
-      return orgFn.apply(this, [state].concat(args));
-    };
-  }));
+  check.t(['function'], reactions, '[sFlow watch]actions should be an array of functions! given: ' + reactions);
+  sigHandler = function(state){
+    var args = slice(arguments, 1),
+        piped = pipe.apply(null, reactions.map(function(orgFn) {
+            return orgFn.bind(this, state);
+          })
+        );
+    return piped.apply(self, args);
+  };
   signal.on(sigName, sigHandler);
 }
 //test
