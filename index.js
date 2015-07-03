@@ -76,7 +76,7 @@ function _watch(sigName) {
   sigHandler = function(state){
     var args = slice(arguments, 1),
         piped = pipe.apply(null, reactions.map(function(orgFn) {
-            return orgFn.bind(this, state);
+            return orgFn.bind(this, state.store, state.refs);
           })
         );
     return piped.apply(self, args);
